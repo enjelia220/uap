@@ -1,0 +1,191 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.io.*;
+import java.util.Vector;
+import javax.imageio.ImageIO;
+
+class MovieManagementApp extends JFrame {
+    private final JTextField titleField, directorField, yearField;
+    private final JTextArea descriptionArea;
+    private final JLabel imageLabel;
+    private final JTable movieTable;
+    private final JButton addButton, updateButton, deleteButton, clearButton, uploadButton;
+    private File selectedImage;
+    private final DefaultTableModel tableModel;
+    private final Vector<Vector<Object>> movieData;  // Data for table
+
+    public MovieManagementApp() {
+        setTitle("Movie Management Application");
+        setSize(800, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        movieData = new Vector<>();  // Initialize movie data
+
+        // Table Model for Movie Data
+        tableModel = new DefaultTableModel(new String[]{"Title", "Director", "Year", "Description", "Poster"}, 0);
+        movieTable = new JTable(tableModel);
+
+        // North Panel for Form
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        titlePanel.add(new JLabel("Title:"));
+        titleField = new JTextField(20);
+        titlePanel.add(titleField);
+        formPanel.add(titlePanel);
+
+        JPanel directorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        directorPanel.add(new JLabel("Director:"));
+        directorField = new JTextField(20);
+        directorPanel.add(directorField);
+        formPanel.add(directorPanel);
+
+        JPanel yearPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        yearPanel.add(new JLabel("Year:"));
+        yearField = new JTextField(20);
+        yearPanel.add(yearField);
+        formPanel.add(yearPanel);
+
+        JPanel descriptionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        descriptionPanel.add(new JLabel("Description:"));
+        descriptionArea = new JTextArea(5, 20);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+        descriptionPanel.add(new JScrollPane(descriptionArea));
+        formPanel.add(descriptionPanel);
+
+        JPanel imagePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        imageLabel = new JLabel("No Image", SwingConstants.CENTER);
+        imageLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+        uploadButton = new JButton("Upload");
+        uploadButton.addActionListener(e -> uploadImage());
+        imagePanel.add(imageLabel);
+        imagePanel.add(uploadButton);
+        formPanel.add(imagePanel);
+
+        // Scrollable formPanel to allow scrolling
+        JScrollPane formScrollPane = new JScrollPane(formPanel);
+        add(formScrollPane, BorderLayout.NORTH);
+
+        // Center Panel for Table
+        JScrollPane tableScrollPane = new JScrollPane(movieTable);
+        add(tableScrollPane, BorderLayout.CENTER);
+
+        // South Panel for Buttons
+        JPanel buttonPanel = new JPanel();
+        addButton = new JButton("Add");
+        addButton.addActionListener(e -> addMovie());
+        buttonPanel.add(addButton);
+
+        updateButton = new JButton("Update");
+        updateButton.addActionListener(e -> updateMovie());
+        buttonPanel.add(updateButton);
+
+        deleteButton = new JButton("Delete");
+        deleteButton.addActionListener(e -> deleteMovie());
+        buttonPanel.add(deleteButton);
+
+        clearButton = new JButton("Clear");
+        clearButton.addActionListener(e -> clearForm());
+        buttonPanel.add(clearButton);
+
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        setVisible(true);
+    }
+
+    // Resize image to fit the label size
+    private ImageIcon resizeImageIcon(ImageIcon icon) {
+        Image img = icon.getImage();
+        Image newImg = img.getScaledInstance(200, 200,  java.awt.Image.SCALE_SMOOTH);
+        return new ImageIcon(newImg);
+    }
+
+    private void uploadImage() {
+        JFileChooser fileChooser = new JFileChooser();
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            selectedImage = fileChooser.getSelectedFile();
+            try {
+                if (selectedImage.exists()) {
+                    ImageIcon icon = new ImageIcon(ImageIO.read(selectedImage));
+                    imageLabel.setIcon(resizeImageIcon(icon));
+                    imageLabel.setText("");  // Remove "No Image" text
+                } else {
+                    JOptionPane.showMessageDialog(this, "File not found.");
+                }
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Failed to load image!");
+            }
+        }
+    }
+
+    private void addMovie() {
+        String title = titleField.getText();
+        String director = directorField.getText();
+        String year = yearField.getText();
+        String description = descriptionArea.getText();
+
+        // Validate inputs
+        if (title.isEmpty() || director.isEmpty() || year.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "All fields must be filled!");
+            return;
+        }
+
+        // Add data to the table and movieData
+        Vector<Object> row = new Vector<>();
+        row.add(title);
+        row.add(director);
+        row.add(year);
+        row.add(description);
+        row.add(selectedImage != null ? selectedImage.getName() : "No Image");
+
+        movieData.add(row);
+        tableModel.addRow(row);  // Update the table
+
+        JOptionPane.showMessageDialog(this, "Movie added successfully!");
+    }
+
+    private void updateMovie() {
+        int selectedRow = movieTable.getSelectedRow();
+        if (selectedRow != -1) {
+            // Update the selected row with new data from input fields
+            movieTable.setValueAt(titleField.getText(), selectedRow, 0);
+            movieTable.setValueAt(directorField.getText(), selectedRow, 1);
+            movieTable.setValueAt(yearField.getText(), selectedRow, 2);
+            movieTable.setValueAt(descriptionArea.getText(), selectedRow, 3);
+            movieTable.setValueAt(selectedImage != null ? selectedImage.getName() : "No Image", selectedRow, 4);
+            JOptionPane.showMessageDialog(this, "Movie updated successfully!");
+        } else {
+            JOptionPane.showMessageDialog(this, "No movie selected for update!");
+        }
+    }
+
+    private void deleteMovie() {
+        int selectedRow = movieTable.getSelectedRow();
+        if (selectedRow != -1) {
+            movieData.remove(selectedRow);
+            tableModel.removeRow(selectedRow);
+            JOptionPane.showMessageDialog(this, "Movie deleted successfully!");
+        } else {
+            JOptionPane.showMessageDialog(this, "No movie selected for deletion!");
+        }
+    }
+
+    private void clearForm() {
+        titleField.setText("");
+        directorField.setText("");
+        yearField.setText("");
+        descriptionArea.setText("");
+        imageLabel.setIcon(null);
+        selectedImage = null;
+        imageLabel.setText("No Image");
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(MovieManagementApp::new);
+    }
+}
